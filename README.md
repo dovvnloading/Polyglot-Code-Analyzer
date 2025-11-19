@@ -24,6 +24,18 @@ The application features a fully responsive Neumorphic design system with seamle
   </tr>
 </table>
 
+---
+---
+
+## Download Polyglot Code Analyzer
+
+### ↓ Direct Download (v1.0.0)
+[Download Polyglot.exe](https://github.com/dovvnloading/Polyglot-Code-Analyzer/releases/download/v1.0.0/Polyglot.exe)
+
+
+---
+---
+
 ## Features
 
 *   **Multi-Language Support**: Native recognition for over 50 file extensions, covering backend, frontend, systems programming, and scripting languages.
