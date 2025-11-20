@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polyglot Code Analyzer</title>
+    <meta name="description" content="A sophisticated, desktop-based static analysis tool for software projects.">
+    
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Consolas&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* 
+         * =========================================
+         *  CSS VARIABLES & THEME CONFIG
+         * =========================================
+         */
+        :root {
+            /* Light Mode Defaults (Neumorphism) */
+            --bg-color: #E0E5EC;
+            --text-main: #4A4A4A;
+            --text-muted: #7a7a7a;
+            --accent: #6D5DFC;
+            
+            /* Shadows for Light Mode */
+            --shadow-light: #ffffff;
+            --shadow-dark: #a3b1c6;
+            
+            /* Semantic Colors */
+            --code-col: #28a745;
+            --comment-col: #6D5DFC;
+            --blank-col: #a3b1c6;
+            --danger: #dc3545;
+
+            /* Spacing */
+            --container-width: 1100px;
+            --radius: 20px;
+        }
+
+        /* Dark Mode Overrides (triggered via checkbox hack) */
+        #theme-switch:checked ~ .main-wrapper {
+            --bg-color: #2b2b2b;
+            --text-main: #E0E0E0;
+            --text-muted: #a0a0a0;
+            --accent: #8a7dff;
+            
+            /* Shadows for Dark Mode */
+            --shadow-light: #3d3d3d;
+            --shadow-dark: #1e1e1e;
+
+            --blank-col: #444;
+        }
+
+        /* 
+         * =========================================
+         *  RESET & GLOBAL STYLES
+         * =========================================
+         */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            /* Default to light bg to avoid flash, but wrapper handles real bg */
+            background-color: #E0E5EC; 
+            overflow-x: hidden;
+        }
+
+        /* The Wrapper handles the background color change */
+        .main-wrapper {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        a { text-decoration: none; color: inherit; }
+        ul { list-style: none; }
+
+        .container {
+            max-width: var(--container-width);
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .highlight { color: var(--accent); }
+
+        /* 
+         * =========================================
+         *  NEUMORPHIC UTILITIES
+         * =========================================
+         */
+        
+        /* Flat/Raised Element */
+        .neu-flat {
+            background: var(--bg-color);
+            border-radius: var(--radius);
+            box-shadow: 
+                8px 8px 16px var(--shadow-dark), 
+                -8px -8px 16px var(--shadow-light);
+            transition: box-shadow 0.3s ease, background-color 0.3s ease;
+        }
+
+        /* Pressed/Inset Element */
+        .neu-inset {
+            background: var(--bg-color);
+            border-radius: var(--radius);
+            box-shadow: 
+                inset 6px 6px 12px var(--shadow-dark), 
+                inset -6px -6px 12px var(--shadow-light);
+            transition: box-shadow 0.3s ease, background-color 0.3s ease;
+            border: none;
+        }
+
+        /* Buttons */
+        .neu-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 12px 25px;
+            border-radius: 30px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: var(--bg-color);
+            color: var(--text-main);
+            box-shadow: 
+                6px 6px 12px var(--shadow-dark), 
+                -6px -6px 12px var(--shadow-light);
+        }
+
+        .neu-btn:active {
+            box-shadow: 
+                inset 4px 4px 8px var(--shadow-dark), 
+                inset -4px -4px 8px var(--shadow-light);
+            transform: translateY(1px);
+        }
+
+        .neu-btn.primary {
+            color: var(--accent);
+        }
+
+        .neu-btn-icon {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            cursor: pointer;
+            background: var(--bg-color);
+            color: var(--text-main);
+            box-shadow: 
+                5px 5px 10px var(--shadow-dark), 
+                -5px -5px 10px var(--shadow-light);
+            transition: all 0.2s ease;
+        }
+
+        .neu-btn-icon:active {
+            box-shadow: 
+                inset 3px 3px 6px var(--shadow-dark), 
+                inset -3px -3px 6px var(--shadow-light);
+        }
+
+        /* 
+         * =========================================
+         *  LAYOUT COMPONENTS
+         * =========================================
+         */
+
+        /* Navbar */
+        nav {
+            padding: 20px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+            /* Sticky styling if desired, standard for now */
+        }
+        nav .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--accent);
+            padding-left: 20px;
+        }
+        .nav-controls {
+            display: flex;
+            gap: 20px;
+            padding-right: 20px;
+        }
+
+        /* Theme Toggle Icons Logic */
+        .sun-icon { display: none; }
+        .moon-icon { display: block; }
+        
+        /* In dark mode (checkbox checked), swap icons */
+        #theme-switch:checked ~ .main-wrapper .sun-icon { display: block; color: var(--accent); }
+        #theme-switch:checked ~ .main-wrapper .moon-icon { display: none; }
+
+
+        /* Hero Section */
+        .hero {
+            padding: 60px 0;
+            min-height: 80vh;
+            display: flex;
+            align-items: center;
+        }
+        .hero .container {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+        }
+        .hero-content {
+            flex: 1;
+            min-width: 300px;
+            padding-right: 40px;
+        }
+        .hero-visual {
+            flex: 1;
+            min-width: 300px;
+            display: flex;
+            justify-content: center;
+            padding: 40px 0;
+        }
+
+        h1 {
+            font-size: 3rem;
+            line-height: 1.2;
+            margin-bottom: 20px;
+        }
+        .hero-text {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        
+        .badges {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .badge {
+            font-size: 0.8rem;
+            padding: 5px 10px;
+            border-radius: 8px;
+            font-weight: 700;
+            background: var(--bg-color);
+            /* Small shadow for badges */
+            box-shadow: 2px 2px 5px var(--shadow-dark), -2px -2px 5px var(--shadow-light);
+            color: var(--text-muted);
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        /* App Mockup CSS Art */
+        .app-mockup {
+            width: 400px;
+            height: 280px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        .mockup-header {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        .dot { width: 12px; height: 12px; border-radius: 50%; }
+        .dot.red { background: #ff5f57; }
+        .dot.yellow { background: #ffbd2e; }
+        .dot.green { background: #28c940; }
+        
+        .mockup-body { flex: 1; display: flex; flex-direction: column; gap: 15px; }
+        
+        .bar { height: 10px; width: 100%; border-radius: 5px; overflow: hidden; }
+        .bar .fill { width: 60%; height: 100%; background: var(--accent); }
+        
+        .stats-grid { display: flex; gap: 15px; }
+        .stat-box { flex: 1; padding: 15px; display: flex; flex-direction: column; align-items: center; }
+        .stat-box span { font-size: 0.8rem; color: var(--text-muted); }
+        .stat-box strong { font-size: 1.2rem; color: var(--accent); margin-top: 5px; }
+        
+        .chart-area { flex: 1; border-radius: 10px; }
+
+        /* Features Section */
+        .section-features, .section-demo, .section-languages {
+            padding: 80px 0;
+        }
+        
+        .section-header {
+            text-align: center;
+            max-width: 600px;
+            margin: 0 auto 60px auto;
+        }
+        .section-header h2 { font-size: 2.2rem; margin-bottom: 10px; }
+        .section-header p { color: var(--text-muted); }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+
+        .feature-card {
+            padding: 40px 25px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+        .feature-card .icon {
+            font-size: 2.5rem;
+            color: var(--accent);
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+        .feature-card h3 { margin-bottom: 15px; font-size: 1.2rem; }
+        .feature-card p { font-size: 0.95rem; color: var(--text-muted); line-height: 1.5; }
+
+        /* Result Showcase */
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .results-area {
+            padding: 40px;
+        }
+        .results-area h3 { color: var(--text-main); text-align: center; font-weight: 600; }
+
+        .result-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+        }
+        .result-card .icon { font-size: 1.5rem; margin-bottom: 10px; }
+        .result-card .icon.code { color: var(--code-col); }
+        .result-card .icon.comment { color: var(--comment-col); }
+        .result-card .icon.blank { color: var(--blank-col); }
+        .result-card .icon.debt { color: var(--danger); }
+        
+        .result-card .data { text-align: center; }
+        .result-card .data span { display: block; font-size: 1.5rem; font-weight: 800; color: var(--text-main); }
+        .result-card .data label { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+
+        .chart-container { margin-top: 20px; }
+        .progress-track {
+            height: 24px;
+            width: 100%;
+            display: flex;
+            border-radius: 12px;
+            overflow: hidden;
+            padding: 3px; /* Padding acts as the inset trough */
+            position: relative;
+        }
+        .progress-fill {
+            height: 100%;
+            border-radius: 8px;
+        }
+        .code-fill { background: var(--code-col); margin-right: 2px; }
+        .comment-fill { background: var(--comment-col); }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            flex-wrap: wrap;
+        }
+        .text-code { color: var(--code-col); }
+        .text-comment { color: var(--comment-col); }
+        .text-blank { color: var(--blank-col); }
+
+        /* Languages Section */
+        .lang-box {
+            padding: 50px;
+            text-align: center;
+        }
+        .lang-box h3 { margin-bottom: 30px; }
+        .tags {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .tags span {
+            padding: 8px 16px;
+            font-family: 'Consolas', monospace;
+            color: var(--accent);
+            font-weight: bold;
+            /* CSS Text Shadow for "pressed" text look */
+            text-shadow: 2px 2px 4px var(--shadow-dark), -2px -2px 4px var(--shadow-light);
+        }
+
+        /* Footer */
+        footer {
+            padding: 30px 0;
+            margin-top: 50px;
+        }
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            h1 { font-size: 2.2rem; }
+            .hero .container { flex-direction: column; text-align: center; }
+            .hero-content { padding-right: 0; margin-bottom: 40px; }
+            .hero-actions { justify-content: center; }
+            .badges { justify-content: center; }
+            .app-mockup { width: 100%; max-width: 350px; }
+            .footer-content { flex-direction: column; gap: 15px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 
+      THEME TOGGLE: Checkbox Hack 
+      Since JS is disabled, we use this hidden checkbox to toggle CSS variables.
+    -->
+    <input type="checkbox" id="theme-switch" hidden>
+
+    <div class="main-wrapper">
+        
+        <!-- Navigation -->
+        <nav class="container">
+            <div class="logo">
+                <i class="fa-solid fa-code"></i> Polyglot
+            </div>
+            <div class="nav-controls">
+                <a href="https://github.com/dovvnloading/Polyglot-Code-Analyzer" target="_blank" class="neu-btn-icon" title="View on GitHub">
+                    <i class="fa-brands fa-github"></i>
+                </a>
+                <!-- Label acts as trigger for hidden checkbox -->
+                <label for="theme-switch" class="neu-btn-icon" title="Toggle Light/Dark Mode">
+                    <i class="fa-solid fa-sun sun-icon"></i>
+                    <i class="fa-solid fa-moon moon-icon"></i>
+                </label>
+            </div>
+        </nav>
+
+        <!-- Hero Section -->
+        <header class="hero">
+            <div class="container">
+                <div class="hero-content">
+                    <div class="badges">
+                        <span class="badge"><i class="fa-brands fa-python"></i> Python 3.10+</span>
+                        <span class="badge"><i class="fa-solid fa-layer-group"></i> PySide6</span>
+                        <span class="badge"><i class="fa-brands fa-windows"></i> Windows | Mac | Linux</span>
+                    </div>
+                    <h1>Deep Insights for <br><span class="highlight">Modern Codebases</span></h1>
+                    <p class="hero-text">
+                        Polyglot Code Analyzer is a sophisticated static analysis tool designed to distinguish executable code, comments, and technical debt across 50+ programming languages.
+                    </p>
+                    <div class="hero-actions">
+                        <a href="https://github.com/dovvnloading/Polyglot-Code-Analyzer/releases/download/v1.0.0/Polyglot.exe" class="neu-btn primary">
+                            <i class="fa-solid fa-download"></i> Download v1.0.0
+                        </a>
+                        <a href="#showcase" class="neu-btn">
+                            <i class="fa-solid fa-eye"></i> View Demo
+                        </a>
+                    </div>
+                </div>
+                <div class="hero-visual">
+                    <!-- Pure CSS Representation of the App UI -->
+                    <div class="app-mockup neu-flat">
+                        <div class="mockup-header">
+                            <div class="dot red"></div>
+                            <div class="dot yellow"></div>
+                            <div class="dot green"></div>
+                        </div>
+                        <div class="mockup-body">
+                            <!-- Progress Bar Mockup -->
+                            <div class="bar neu-inset">
+                                <div class="fill"></div>
+                            </div>
+                            <!-- Stats Mockup -->
+                            <div class="stats-grid">
+                                <div class="stat-box neu-flat">
+                                    <span>Files</span>
+                                    <strong>142</strong>
+                                </div>
+                                <div class="stat-box neu-flat">
+                                    <span>Lines</span>
+                                    <strong>12.4k</strong>
+                                </div>
+                            </div>
+                            <!-- Chart Area Mockup -->
+                            <div class="chart-area neu-inset"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Static Showcase Section -->
+        <section id="showcase" class="section-demo">
+            <div class="container">
+                <div class="section-header">
+                    <h2>Visual <span class="highlight">Reporting</span></h2>
+                    <p>Generate proportional charts and identify technical debt instantly.</p>
+                </div>
+
+                <!-- Visual Report Card -->
+                <div class="results-area neu-flat" style="max-width: 800px; margin: 0 auto;">
+                    <h3><i class="fa-solid fa-file-lines"></i> Scan Result: /src/project_root</h3>
+                    <br>
+                    <div class="result-grid">
+                        <div class="result-card">
+                            <div class="icon code"><i class="fa-solid fa-code"></i></div>
+                            <div class="data">
+                                <span>8,450</span>
+                                <label>Code</label>
+                            </div>
+                        </div>
+                        <div class="result-card">
+                            <div class="icon comment"><i class="fa-solid fa-comment-dots"></i></div>
+                            <div class="data">
+                                <span>2,100</span>
+                                <label>Comments</label>
+                            </div>
+                        </div>
+                        <div class="result-card">
+                            <div class="icon blank"><i class="fa-solid fa-bars-staggered"></i></div>
+                            <div class="data">
+                                <span>1,855</span>
+                                <label>Blanks</label>
+                            </div>
+                        </div>
+                        <div class="result-card">
+                            <div class="icon debt"><i class="fa-solid fa-bug"></i></div>
+                            <div class="data">
+                                <span>12</span>
+                                <label>Debt Tags</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <div class="progress-track neu-inset">
+                            <div class="progress-fill code-fill" style="width: 68%"></div>
+                            <div class="progress-fill comment-fill" style="width: 17%"></div>
+                        </div>
+                        <div class="legend">
+                            <span><i class="fa-solid fa-square text-code"></i> Code (68%)</span>
+                            <span><i class="fa-solid fa-square text-comment"></i> Comments (17%)</span>
+                            <span><i class="fa-solid fa-square text-blank"></i> Blank (15%)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Grid -->
+        <section id="features" class="section-features">
+            <div class="container">
+                <div class="section-header">
+                    <h2>Core <span class="highlight">Capabilities</span></h2>
+                </div>
+                <div class="features-grid">
+                    <div class="feature-card neu-flat">
+                        <i class="fa-solid fa-globe icon"></i>
+                        <h3>Multi-Language</h3>
+                        <p>Native recognition for over 50 file extensions including Python, C++, Rust, Go, and JavaScript.</p>
+                    </div>
+                    <div class="feature-card neu-flat">
+                        <i class="fa-solid fa-magnifying-glass-chart icon"></i>
+                        <h3>Granular Metrics</h3>
+                        <p>Parses directory structures to separate executable code from documentation and whitespace.</p>
+                    </div>
+                    <div class="feature-card neu-flat">
+                        <i class="fa-solid fa-triangle-exclamation icon"></i>
+                        <h3>Debt Scanning</h3>
+                        <p>Automated detection of standard tags like TODO, FIXME, and BUG to highlight areas needing attention.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Supported Languages -->
+        <section class="section-languages">
+            <div class="container">
+                <div class="lang-box neu-inset">
+                    <h3>Supported Ecosystems</h3>
+                    <div class="tags">
+                        <span>Python</span><span>C++</span><span>Rust</span><span>Go</span>
+                        <span>JavaScript</span><span>TypeScript</span><span>HTML/CSS</span>
+                        <span>Java</span><span>Kotlin</span><span>Swift</span><span>Dart</span>
+                        <span>SQL</span><span>JSON</span><span>YAML</span><span>Shell</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="neu-flat">
+            <div class="container">
+                <div class="footer-content">
+                    <div class="copyright">
+                        &copy; 2025 Matthew R. Wesney. Licensed under Apache 2.0.
+                    </div>
+                    <div class="socials">
+                        <a href="https://github.com/dovvnloading/Polyglot-Code-Analyzer" class="neu-btn-icon small"><i class="fa-brands fa-github"></i></a>
+                    </div>
+                </div>
+            </div>
+        </footer>
+
+    </div> <!-- End Main Wrapper -->
+</body>
+</html>
