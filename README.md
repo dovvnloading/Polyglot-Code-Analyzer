@@ -25,10 +25,11 @@ The application features a fully responsive Neumorphic design system with seamle
     <th width="50%">Dark Mode</th>
   </tr>
   <tr>
-    <td><img src="https://github.com/user-attachments/assets/10b7b8fd-bb93-42d6-9036-27ca92af7d6f" alt="Polyglot Analyzer Light Mode" width="100%"></td>
-    <td><img src="https://github.com/user-attachments/assets/c21c1c9a-0cdc-4af5-865a-4a023bc31c43" alt="Polyglot Analyzer Dark Mode" width="100%"></td>
+    <td><img src="https://github.com/user-attachments/assets/b28929ce-8a7e-4123-a906-3a1cb2e8f73d" alt="Polyglot Analyzer Light Mode" width="100%"></td>
+    <td><img src="https://github.com/user-attachments/assets/c85bdc24-196e-499c-b5bd-a8333b432c5e" alt="Polyglot Analyzer Dark Mode" width="100%"></td>
   </tr>
 </table>
+
 
 ---
 ---
